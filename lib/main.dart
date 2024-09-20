@@ -23,6 +23,7 @@ void main() async {
 
   if (permission.isGranted) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    await FirebaseMessaging.instance.subscribeToTopic("global");
     print("=========================${await FirebaseMessaging.instance.getToken()}");
     print("=========================${await GetAccessToken.getAccessToken()}");
 
