@@ -1,12 +1,16 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, use_build_context_synchronously
 
 import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:gal/gal.dart';
 import 'package:http/http.dart';
-import 'package:test_app/image_view_screen.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:test_app/image_generation/image_view_screen.dart';
 
 Future<void> main() async {
   await dotenv.load(
@@ -48,26 +52,28 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Color(0xff084277),
         title: Text(widget.title, style: TextStyle(color: Colors.white70)),
       ),
-      body: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-        itemCount: imagesList.length,
-        itemBuilder: (context, index) {
-          return InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ImageViewScreen(imageUrl: imagesList[index])),
-              );
-            },
-            child: CachedNetworkImage(
-              imageUrl: imagesList[index],
-              errorWidget: (context, url, error) {
-                return Center(child: Text("Error"));
+      body: imagesList.isEmpty
+          ? Center(child: Text("Data Not Found"))
+          : GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+              itemCount: imagesList.length,
+              itemBuilder: (context, index) {
+                return InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ImageViewScreen(imageUrl: imagesList[index])),
+                    );
+                  },
+                  child: CachedNetworkImage(
+                    imageUrl: imagesList[index],
+                    errorWidget: (context, url, error) {
+                      return Center(child: Text("Error"));
+                    },
+                  ),
+                );
               },
             ),
-          );
-        },
-      ),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -120,8 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
         'messages': [
           {
             'id': 'YzzEqunm5RcEebt4xRchg',
-            'content':
-                'A whimsical library in the clouds, with floating books and glowing lanterns. The shelves are made of fluffy white clouds, and the sky around is a gradient of sunset colors—pinks, purples, and oranges. A soft, magical light illuminates the space, with a gentle breeze ruffling the pages of an open book.a',
+            'content': 'to create sticker image for dog images and background is any transparent color',
             'role': 'user'
           }
         ],
@@ -142,6 +147,8 @@ class _MyHomePageState extends State<MyHomePage> {
         'mobileClient': false
       },
     );
+    print("==============================${dotenv.env["BASE_URL"].toString()}");
+    print("==============================$body");
 
     for (int i = 0; i < 50; i++) {
       responseGet(url, headers, body);
@@ -152,9 +159,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> responseGet(Uri url, Map<String, String> headers, String body) async {
     var res = await post(url, headers: headers, body: body);
-    print("===================${res.body}");
+    log("===========================${res.body}");
     if (res.statusCode == 200) {
-      imagesList.add(res.body.replaceAll("![Generated Image](", "").replaceAll(")", ""));
+      imagesList.add(res.body.replaceAll('![Generated Image](', "").replaceAll(')', ''));
+      try {
+        String url = res.body.replaceAll('![Generated Image](', "").replaceAll(')', '');
+        var resp = await get(Uri.parse(url));
+        var dir = await getTemporaryDirectory();
+        File file = File("${dir.path}/${url.split('/').last}");
+        await file.writeAsBytes(resp.bodyBytes);
+        Gal.putImage(file.path);
+      } catch (e) {
+        print("==========================+$e");
+      }
       setState(() {});
     }
   }

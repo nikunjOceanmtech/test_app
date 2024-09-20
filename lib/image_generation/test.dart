@@ -1,13 +1,12 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, use_build_context_synchronously
 
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart';
-import 'package:test_app/image_view_screen.dart';
+import 'package:test_app/image_generation/image_view_screen.dart';
 
 Future<void> main() async {
   await dotenv.load(
@@ -49,28 +48,26 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Color(0xff084277),
         title: Text(widget.title, style: TextStyle(color: Colors.white70)),
       ),
-      body: imagesList.isEmpty
-          ? Center(child: Text("Data Not Found"))
-          : GridView.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-              itemCount: imagesList.length,
-              itemBuilder: (context, index) {
-                return InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ImageViewScreen(imageUrl: imagesList[index])),
-                    );
-                  },
-                  child: CachedNetworkImage(
-                    imageUrl: imagesList[index],
-                    errorWidget: (context, url, error) {
-                      return Center(child: Text("Error"));
-                    },
-                  ),
-                );
+      body: GridView.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
+        itemCount: imagesList.length,
+        itemBuilder: (context, index) {
+          return InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ImageViewScreen(imageUrl: imagesList[index])),
+              );
+            },
+            child: CachedNetworkImage(
+              imageUrl: imagesList[index],
+              errorWidget: (context, url, error) {
+                return Center(child: Text("Error"));
               },
             ),
+          );
+        },
+      ),
       floatingActionButton: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -97,7 +94,6 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> apiCall() async {
-    print("==============================${dotenv.env["BASE_URL"].toString()}");
     final url = Uri.parse(dotenv.env["BASE_URL"].toString());
 
     final headers = {
@@ -125,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
           {
             'id': 'YzzEqunm5RcEebt4xRchg',
             'content':
-                'to create litle krishna image image size is 1080x1080 and proper hand and proper lag and proper 4 hand',
+                'A whimsical library in the clouds, with floating books and glowing lanterns. The shelves are made of fluffy white clouds, and the sky around is a gradient of sunset colors—pinks, purples, and oranges. A soft, magical light illuminates the space, with a gentle breeze ruffling the pages of an open book.a',
             'role': 'user'
           }
         ],
@@ -156,9 +152,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> responseGet(Uri url, Map<String, String> headers, String body) async {
     var res = await post(url, headers: headers, body: body);
-    log("===========================${res.body}");
+    print("===================${res.body}");
     if (res.statusCode == 200) {
-      imagesList.add(res.body.replaceAll('![Generated Image](', "").replaceAll(')', ''));
+      imagesList.add(res.body.replaceAll("![Generated Image](", "").replaceAll(")", ""));
       setState(() {});
     }
   }

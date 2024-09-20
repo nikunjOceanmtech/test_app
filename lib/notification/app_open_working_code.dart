@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_const_constructors, unnecessary_brace_in_string_interps, avoid_print
+// ignore_for_file: prefer_const_constructors
 
 import 'dart:convert';
 import 'dart:math';
@@ -25,7 +25,6 @@ void main() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     print("=========================${await FirebaseMessaging.instance.getToken()}");
     print("=========================${await GetAccessToken.getAccessToken()}");
-
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
@@ -40,12 +39,6 @@ void main() async {
 
     FirebaseMessaging.onBackgroundMessage(_handleBgMessage);
     FirebaseMessaging.onMessage.listen(_handleMessage);
-
-    // Handle notification tap when app was terminated or in the background
-    RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      _handleNotificationTap(initialMessage);
-    }
 
     runApp(MyApp());
   } else {
@@ -63,7 +56,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/',
       getPages: [
         GetPage(name: '/', page: () => MyHomePage()),
         GetPage(name: '/home', page: () => HomeScreen()),
@@ -117,15 +109,12 @@ Future<void> _showNotification({required RemoteMessage message}) async {
   );
 }
 
-@pragma('vm:entry-point')
 Future<void> _handleMessage(RemoteMessage message) async {
-  // Handle message when the app is in the foreground
   await _showNotification(message: message);
 }
 
 @pragma('vm:entry-point')
 Future<void> _handleBgMessage(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await registerNotificationListeners();
   await _showNotification(message: message);
 }
@@ -149,46 +138,14 @@ Future<void> registerNotificationListeners() async {
       try {
         print("============================${payload.payload}");
         Map<String, dynamic> jsonMap = jsonDecode(payload.payload ?? "");
-        print("============================${jsonMap}");
-        await _handleNotificationTapFromPayload(jsonMap); // Handle notification tap from payload
+        print("============================${payload.payload}");
+        if (jsonMap["screen_type"] == "home") {
+          Get.toNamed('/home');
+        } else if (jsonMap["screen_type"] == "profile") {
+          Get.toNamed('/profile');
+        }
       } catch (e) {
         print("======================$e");
-      }
-    },
-  );
-}
-
-Future<void> _handleNotificationTap(RemoteMessage message) async {
-  // Extract the screen type from the message
-  String? screenType = message.data['screen_type'];
-  print("==================== Handle Tap: screenType: $screenType");
-
-  await Future.delayed(
-    Duration(seconds: 1),
-    () {
-      print("=============================");
-      if (screenType == "home") {
-        Get.toNamed('/home'); // Navigate to home screen
-      } else if (screenType == "profile") {
-        Get.toNamed('/profile'); // Navigate to profile screen
-      }
-    },
-  );
-}
-
-Future<void> _handleNotificationTapFromPayload(Map<String, dynamic> jsonMap) async {
-  // Extract the screen type from the payload
-  String? screenType = jsonMap["screen_type"];
-  print("==================== Handle Payload: screenType: $screenType");
-
-  await Future.delayed(
-    Duration(seconds: 1),
-    () {
-      print("=============================");
-      if (screenType == "home") {
-        Get.toNamed('/home'); // Navigate to home screen
-      } else if (screenType == "profile") {
-        Get.toNamed('/profile'); // Navigate to profile screen
       }
     },
   );

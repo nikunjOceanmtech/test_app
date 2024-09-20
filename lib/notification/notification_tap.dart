@@ -10,9 +10,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test_app/firebase_options.dart';
-import 'package:test_app/get_access_token.dart';
-import 'package:test_app/home_screen.dart';
-import 'package:test_app/profile_screen.dart';
+import 'package:test_app/notification/get_access_token.dart';
+import 'package:test_app/notification/home_screen.dart';
+import 'package:test_app/notification/profile_screen.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
