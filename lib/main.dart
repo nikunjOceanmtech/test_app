@@ -23,19 +23,11 @@ void main() async {
 
   if (permission.isGranted) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    await FirebaseMessaging.instance.subscribeToTopic("global");
+    await FirebaseMessaging.instance.subscribeToTopic("global1");
     print("=========================${await FirebaseMessaging.instance.getToken()}");
     print("=========================${await GetAccessToken.getAccessToken()}");
 
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+    _requestNotificationPermissions();
 
     registerNotificationListeners();
 
@@ -128,6 +120,15 @@ Future<void> _handleMessage(RemoteMessage message) async {
 Future<void> _handleBgMessage(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await registerNotificationListeners();
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
   await _showNotification(message: message);
 }
 
@@ -201,3 +202,22 @@ AndroidNotificationChannel channel = const AndroidNotificationChannel(
   description: 'This channel is used for important notifications.',
   importance: Importance.max,
 );
+Future<void> _requestNotificationPermissions() async {
+  NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    print('User granted permission');
+  } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+    print('User granted provisional permission');
+  } else {
+    print('User declined or has not accepted permission');
+  }
+}
