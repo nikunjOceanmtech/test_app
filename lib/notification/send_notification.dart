@@ -25,9 +25,7 @@ Future<void> sendNotification() async {
   });
 
   try {
-    for (int i = 0; i < 10; i++) {
-      Future.delayed(const Duration(milliseconds: 800), () => http.post(Uri.parse(url), headers: headers, body: body));
-    }
+    http.post(Uri.parse(url), headers: headers, body: body);
   } catch (e) {
     print('Error occurred: $e');
   }

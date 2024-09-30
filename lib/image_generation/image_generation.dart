@@ -7,7 +7,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:gal/gal.dart';
 import 'package:http/http.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:test_app/image_generation/image_view_screen.dart';
@@ -168,7 +167,6 @@ class _MyHomePageState extends State<MyHomePage> {
         var dir = await getTemporaryDirectory();
         File file = File("${dir.path}/${url.split('/').last}");
         await file.writeAsBytes(resp.bodyBytes);
-        Gal.putImage(file.path);
       } catch (e) {
         print("==========================+$e");
       }

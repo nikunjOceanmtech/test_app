@@ -2,10 +2,15 @@
 
 import 'dart:convert';
 import 'dart:math';
+import 'dart:developer' as log;
+import 'dart:typed_data';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +19,7 @@ import 'package:test_app/notification/get_access_token.dart';
 import 'package:test_app/notification/home_screen.dart';
 import 'package:test_app/notification/profile_screen.dart';
 import 'package:test_app/notification/send_notification.dart';
+import 'package:http/http.dart' as http;
 
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -23,12 +29,20 @@ void main() async {
 
   if (permission.isGranted) {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    await FirebaseMessaging.instance.subscribeToTopic("global1");
+
+    // Pass all uncaught "fatal" errors from the framework to Crashlytics
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+    // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
     print("=========================${await FirebaseMessaging.instance.getToken()}");
     print("=========================${await GetAccessToken.getAccessToken()}");
 
     _requestNotificationPermissions();
-
     registerNotificationListeners();
 
     FirebaseMessaging.onBackgroundMessage(_handleBgMessage);
@@ -80,120 +94,149 @@ class MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text('Flutter Notifications Demo'),
       ),
-      body: ElevatedButton(
-        onPressed: () async {
-          sendNotification();
-        },
-        child: Text("Send Notification"),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: 1 == 1
+              ? _onButtonPressed
+              : () async {
+                  // sendNotification(); // Ensure this method is defined elsewhere
+                },
+          child: Text("Send Notification"),
+        ),
       ),
     );
+  }
+
+  void _onButtonPressed() {
+    try {
+      // Code that may throw an exception
+      throw Exception('Test Exception for Firebase Crashlytics');
+    } catch (e, s) {
+      // Log the exception
+      FirebaseCrashlytics.instance.recordError(e, s);
+      print("Error: $e");
+    }
   }
 }
 
 Future<void> _showNotification({required RemoteMessage message}) async {
+  String imageUrl = message.data['image'] ?? '';
+  BigPictureStyleInformation? bigPictureStyleInformation;
+
+  // Fetch the image from the URL
+  if (imageUrl.isNotEmpty) {
+    try {
+      final http.Response response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        Uint8List imageData = response.bodyBytes;
+        ByteArrayAndroidBitmap byteArrayAndroidBitmap = ByteArrayAndroidBitmap(imageData);
+        bigPictureStyleInformation = BigPictureStyleInformation(
+          byteArrayAndroidBitmap,
+          largeIcon: byteArrayAndroidBitmap,
+          contentTitle: message.notification?.title,
+          summaryText: message.notification?.body,
+        );
+      }
+    } catch (e) {
+      print("Error downloading image: $e");
+    }
+  }
+
+  // Android notification details with image
   AndroidNotificationDetails androidNotificationDetails = AndroidNotificationDetails(
     Random().nextDouble().toString(),
-    'Test',
-    channelDescription: 'channel_description',
+    'Test Channel',
+    channelDescription: 'Test channel for notifications with image',
     importance: Importance.max,
     priority: Priority.high,
+    playSound: true,
+    ticker: 'ticker',
+    styleInformation: bigPictureStyleInformation,
   );
 
-  NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidNotificationDetails);
-  String jsonString = jsonEncode(message.data);
+  // iOS notification details (optional)
+  DarwinNotificationDetails iOSNotificationDetails = DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  );
+
+  // Platform-specific notification details
+  NotificationDetails platformChannelSpecifics = NotificationDetails(
+    android: androidNotificationDetails,
+    iOS: iOSNotificationDetails,
+  );
+
+  // Show the notification
   await flutterLocalNotificationsPlugin.show(
     0,
-    message.notification?.title ?? "",
-    message.notification?.body ?? "",
+    message.notification?.title ?? "Notification Title",
+    message.notification?.body ?? "Notification Body",
     platformChannelSpecifics,
-    payload: jsonString,
+    payload: jsonEncode(message.data), // Include the payload for later use
   );
 }
 
 @pragma('vm:entry-point')
 Future<void> _handleMessage(RemoteMessage message) async {
-  // Handle message when the app is in the foreground
-  await _showNotification(message: message);
+  if (message.notification != null) {
+    await _showNotification(message: message);
+  }
 }
 
 @pragma('vm:entry-point')
 Future<void> _handleBgMessage(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await registerNotificationListeners();
-  await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    announcement: false,
-    badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
-    sound: true,
-  );
   await _showNotification(message: message);
 }
 
 Future<void> registerNotificationListeners() async {
-  print("============================");
+  // Create notification channel
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(channel);
+
+  // Initialize settings
   var androidSettings = const AndroidInitializationSettings('@mipmap/ic_launcher');
   var iOSSettings = DarwinInitializationSettings(
     requestSoundPermission: true,
     requestBadgePermission: true,
     requestAlertPermission: true,
-    onDidReceiveLocalNotification: (id, title, body, payload) => {print("==========================1111$payload")},
   );
+
   var initSetttings = InitializationSettings(android: androidSettings, iOS: iOSSettings);
   await flutterLocalNotificationsPlugin.initialize(
     initSetttings,
     onDidReceiveNotificationResponse: (NotificationResponse payload) async {
       try {
-        print("============================${payload.payload}");
         Map<String, dynamic> jsonMap = jsonDecode(payload.payload ?? "");
-        print("============================${jsonMap}");
-        await _handleNotificationTapFromPayload(jsonMap); // Handle notification tap from payload
+        await _handleNotificationTapFromPayload(jsonMap);
       } catch (e) {
-        print("======================$e");
+        log.log("======================$e");
       }
     },
   );
 }
 
 Future<void> _handleNotificationTap(RemoteMessage message) async {
-  // Extract the screen type from the message
   String? screenType = message.data['screen_type'];
-  print("==================== Handle Tap: screenType: $screenType");
-
-  await Future.delayed(
-    Duration(seconds: 1),
-    () {
-      print("=============================");
-      if (screenType == "home") {
-        Get.toNamed('/home'); // Navigate to home screen
-      } else if (screenType == "profile") {
-        Get.toNamed('/profile'); // Navigate to profile screen
-      }
-    },
-  );
+  await _navigateToScreen(screenType);
 }
 
 Future<void> _handleNotificationTapFromPayload(Map<String, dynamic> jsonMap) async {
-  // Extract the screen type from the payload
   String? screenType = jsonMap["screen_type"];
-  print("==================== Handle Payload: screenType: $screenType");
+  Future.delayed(Duration(seconds: 1), () async => await _navigateToScreen(screenType));
+}
 
-  await Future.delayed(
-    Duration(seconds: 1),
-    () {
-      print("=============================");
-      if (screenType == "home") {
-        Get.toNamed('/home'); // Navigate to home screen
-      } else if (screenType == "profile") {
-        Get.toNamed('/profile'); // Navigate to profile screen
-      }
-    },
-  );
+Future<void> _navigateToScreen(String? screenType) async {
+  await Future.delayed(Duration(seconds: 1), () {
+    if (screenType == "home") {
+      Get.toNamed('/home');
+    } else if (screenType == "profile") {
+      Get.toNamed('/profile');
+    }
+  });
 }
 
 AndroidNotificationChannel channel = const AndroidNotificationChannel(
@@ -202,14 +245,11 @@ AndroidNotificationChannel channel = const AndroidNotificationChannel(
   description: 'This channel is used for important notifications.',
   importance: Importance.max,
 );
+
 Future<void> _requestNotificationPermissions() async {
   NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
     alert: true,
-    announcement: false,
     badge: true,
-    carPlay: false,
-    criticalAlert: false,
-    provisional: false,
     sound: true,
   );
 
@@ -220,4 +260,10 @@ Future<void> _requestNotificationPermissions() async {
   } else {
     print('User declined or has not accepted permission');
   }
+
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
 }
