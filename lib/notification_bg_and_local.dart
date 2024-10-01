@@ -10,8 +10,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:test_app/channel.dart';
 import 'package:test_app/firebase_options.dart';
-import 'package:test_app/notification/app_open_working_code.dart';
 import 'package:http/http.dart' as http;
+import 'package:test_app/notification/app_open_working_code.dart';
 
 Future<void> showNotification({required RemoteMessage message}) async {
   String imageUrl = message.data['image'] ?? '';
@@ -74,9 +74,9 @@ Future<void> showNotification({required RemoteMessage message}) async {
 @pragma('vm:entry-point')
 Future<void> handleMessage(RemoteMessage message) async {
   if (message.notification != null) {
+    // customNotificationData = message;
     showNotificationPopup(message);
-
-    // await _showNotification(message: message);
+    // await showNotification(message: message);
   }
 }
 

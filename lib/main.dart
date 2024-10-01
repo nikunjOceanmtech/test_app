@@ -4,14 +4,15 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test_app/firebase_options.dart';
 import 'package:test_app/notification/get_access_token.dart';
 import 'package:test_app/notification/home_screen.dart';
 import 'package:test_app/notification/profile_screen.dart';
-import 'package:test_app/notification/send_notification.dart';
 import 'package:test_app/notification_bg_and_local.dart';
+import 'package:test_app/true_caller_overlay.dart';
 
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -86,23 +87,21 @@ class MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: ElevatedButton(
-          onPressed: 1 != 1
-              ? _onButtonPressed
-              : () async {
-                  sendNotification();
-                },
+          onPressed: () async {
+            // sendNotification();
+            FlutterOverlayWindow.showOverlay(height: 300, startPosition: OverlayPosition(0, -250));
+          },
           child: Text("Send Notification"),
         ),
       ),
     );
   }
-
-  void _onButtonPressed() {
-    try {
-      throw Exception('Test Exception for Firebase Crashlytics');
-    } catch (e, s) {
-      FirebaseCrashlytics.instance.recordError(e, s);
-      print("Error: $e");
-    }
-  }
 }
+
+@pragma('vm:entry-point')
+void overlayMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MaterialApp(debugShowCheckedModeBanner: false, home: TrueCallerOverlay()));
+}
+
+RemoteMessage? customNotificationData;

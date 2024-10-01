@@ -1,10 +1,11 @@
-import 'dart:developer';
+// ignore_for_file: prefer_const_constructors
 
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_overlay_window/flutter_overlay_window.dart';
 
 class TrueCallerOverlay extends StatefulWidget {
-  const TrueCallerOverlay({Key? key}) : super(key: key);
+  const TrueCallerOverlay({super.key});
 
   @override
   State<TrueCallerOverlay> createState() => _TrueCallerOverlayState();
@@ -12,12 +13,6 @@ class TrueCallerOverlay extends StatefulWidget {
 
 class _TrueCallerOverlayState extends State<TrueCallerOverlay> {
   bool isGold = true;
-
-  final _goldColors = const [
-    Color(0xFFa2790d),
-    Color(0xFFebd197),
-    Color(0xFFa2790d),
-  ];
 
   final _silverColors = const [
     Color(0xFFAEB2B8),
@@ -43,7 +38,7 @@ class _TrueCallerOverlayState extends State<TrueCallerOverlay> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: isGold ? _goldColors : _silverColors,
+              colors: _silverColors,
             ),
             borderRadius: BorderRadius.circular(12.0),
           ),
@@ -59,22 +54,11 @@ class _TrueCallerOverlayState extends State<TrueCallerOverlay> {
             child: Stack(
               children: [
                 ListTile(
-                  leading: Container(
-                    height: 80.0,
-                    width: 80.0,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.black54),
-                      shape: BoxShape.circle,
-                      image: const DecorationImage(
-                        image: NetworkImage("https://api.multiavatar.com/x-slayer.png"),
-                      ),
-                    ),
+                  title: Text(
+                    "model.nTitle",
+                    style: const TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
                   ),
-                  title: const Text(
-                    "X-SLAYER",
-                    style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: const Text("Sousse , Tunisia"),
+                  subtitle: Text("model.nBody"),
                 ),
                 Positioned(
                   top: 0,
@@ -96,15 +80,4 @@ class _TrueCallerOverlayState extends State<TrueCallerOverlay> {
       ),
     );
   }
-}
-
-@pragma("vm:entry-point")
-void overlayMain() {
-  WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: TrueCallerOverlay(),
-    ),
-  );
 }
